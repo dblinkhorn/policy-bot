@@ -1,6 +1,5 @@
 - status: 200
   body: |
     {
-      "numerber": 123,
       "changed_files": 5
     }

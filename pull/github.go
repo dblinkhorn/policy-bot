@@ -270,6 +270,16 @@ func (ghc *GitHubContext) Branches() (base string, head string) {
 }
 
 func (ghc *GitHubContext) ChangedFiles() ([]*File, error) {
+
+	// check if changed files count exceeds the limit
+	count, err := ghc.ChangedFilesCount()
+	if err != nil {
+		return nil, err
+	}
+	if count > MaxPullRequestFiles {
+		return nil, errors.Errorf("number of changed files (%d) exceeds limit (%d)", count, MaxPullRequestFiles)
+	}
+
 	if ghc.files == nil {
 		opt := github.ListOptions{
 			PerPage: 100,
@@ -318,10 +328,21 @@ func (ghc *GitHubContext) ChangedFiles() ([]*File, error) {
 			})
 		}
 	}
-	if len(ghc.files) >= MaxPullRequestFiles {
-		return nil, errors.Errorf("too many files in pull request, maximum is %d", MaxPullRequestFiles)
-	}
+
 	return ghc.files, nil
+}
+
+func (ghc *GitHubContext) ChangedFilesCount() (int, error) {
+	pullRequest, _, err := ghc.client.PullRequests.Get(ghc.ctx, ghc.owner, ghc.repo, ghc.number)
+	if err != nil {
+		return 0, err
+	}
+
+	if pullRequest.ChangedFiles != nil {
+		return *pullRequest.ChangedFiles, nil
+	}
+
+	return 0, errors.New("changed files count not available")
 }
 
 func (ghc *GitHubContext) Commits() ([]*Commit, error) {

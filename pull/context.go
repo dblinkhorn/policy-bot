@@ -88,6 +88,9 @@ type Context interface {
 	// ChangedFiles returns the files that were changed in this pull request.
 	ChangedFiles() ([]*File, error)
 
+	// ChangedFilesCount returns the count of files that were changed in this pull request.
+	ChangedFilesCount() (int, error)
+
 	// Commits returns the commits that are part of this pull request. The
 	// commit order is implementation dependent.
 	Commits() ([]*Commit, error)

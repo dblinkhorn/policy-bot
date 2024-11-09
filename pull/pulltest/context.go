@@ -42,6 +42,9 @@ type Context struct {
 	ChangedFilesValue []*pull.File
 	ChangedFilesError error
 
+	ChangedFilesCountValue int
+	ChangedFilesCountError error
+
 	CommitsValue []*pull.Commit
 	CommitsError error
 
@@ -143,6 +146,10 @@ func (c *Context) Branches() (base string, head string) {
 
 func (c *Context) ChangedFiles() ([]*pull.File, error) {
 	return c.ChangedFilesValue, c.ChangedFilesError
+}
+
+func (c *Context) ChangedFilesCount() (int, error) {
+	return c.ChangedFilesCountValue, c.ChangedFilesCountError
 }
 
 func (c *Context) Commits() ([]*pull.Commit, error) {

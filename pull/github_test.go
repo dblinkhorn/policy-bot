@@ -31,6 +31,10 @@ import (
 
 func TestChangedFiles(t *testing.T) {
 	rp := &ResponsePlayer{}
+	rp.AddRule(
+		ExactPathMatcher("/repos/testorg/testrepo/pulls/123"),
+		"testdata/responses/pull_changed_files_count_within_limit.yml",
+	)
 	filesRule := rp.AddRule(
 		ExactPathMatcher("/repos/testorg/testrepo/pulls/123/files"),
 		"testdata/responses/pull_files.yml",
@@ -71,8 +75,42 @@ func TestChangedFiles(t *testing.T) {
 	assert.Equal(t, 2, filesRule.Count, "cached files were not used")
 }
 
+func TestChangedFilesExceedsLimit(t *testing.T) {
+	rp := &ResponsePlayer{}
+	rp.AddRule(
+		ExactPathMatcher("/repos/testorg/testrepo/pulls/123"),
+		"testdata/responses/pull_changed_files_count_exceeds_limit.yml",
+	)
+
+	ctx := makeContext(t, rp, nil, nil)
+
+	files, err := ctx.ChangedFiles()
+	require.Error(t, err, "expected error due to exceeding changed files limit")
+	assert.Contains(t, err.Error(), "number of changed files", "error message does not contain expected text")
+	assert.Nil(t, files, "expect files to be nil when error occurs")
+}
+
+func TestChangedFilesCount(t *testing.T) {
+	rp := &ResponsePlayer{}
+	rp.AddRule(
+		ExactPathMatcher("/repos/testorg/testrepo/pulls/123"),
+		"testdata/responses/pull_changed_files_count_within_limit.yml",
+	)
+
+	ctx := makeContext(t, rp, nil, nil)
+
+	changedFilesCount, err := ctx.ChangedFilesCount()
+	require.NoError(t, err, "ChangedFilesCount() returned an error")
+
+	assert.Equal(t, 5, changedFilesCount, "incorrect changed files count")
+}
+
 func TestChangedFilesNoFiles(t *testing.T) {
 	rp := &ResponsePlayer{}
+	rp.AddRule(
+		ExactPathMatcher("/repos/testorg/testrepo/pulls/123"),
+		"testdata/responses/pull_changed_files_count_within_limit.yml",
+	)
 	filesRule := rp.AddRule(
 		ExactPathMatcher("/repos/testorg/testrepo/pulls/123/files"),
 		"testdata/responses/pull_no_files.yml",

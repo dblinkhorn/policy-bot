@@ -209,7 +209,6 @@ type v4PullRequestWithEditedAt struct {
 	CreatedAt    time.Time
 	LastEditedAt time.Time
 	Body         string
-	ChangedFiles int
 }
 
 func (ghc *GitHubContext) Body() (*Body, error) {
@@ -233,7 +232,6 @@ func (ghc *GitHubContext) Body() (*Body, error) {
 		CreatedAt:    graphqlResponse.CreatedAt,
 		Author:       graphqlResponse.Author.GetV3Login(),
 		LastEditedAt: graphqlResponse.LastEditedAt,
-		ChangedFiles: graphqlResponse.ChangedFiles,
 	}, nil
 }
 

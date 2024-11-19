@@ -255,5 +255,4 @@ type Body struct {
 	CreatedAt    time.Time
 	Author       string
 	LastEditedAt time.Time
-	ChangedFiles int
 }

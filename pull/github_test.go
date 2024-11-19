@@ -88,7 +88,7 @@ func TestChangedFilesExceedsLimit(t *testing.T) {
 	ctx := makeContext(t, rp, pr, nil)
 
 	_, err := ctx.ChangedFiles()
-	assert.Equal(t, 3001, *pr.ChangedFiles)
+	assert.Equal(t, 3001, pr.GetChangedFiles())
 	assert.Contains(t, err.Error(), "number of changed files (3001) exceeds limit (3000)")
 }
 

@@ -70,6 +70,7 @@ func (loc Locator) IsComplete() bool {
 	case loc.Value.GetHead().GetRepo().GetID() == 0:
 	case loc.Value.GetHead().GetRepo().GetName() == "":
 	case loc.Value.GetHead().GetRepo().GetOwner().GetLogin() == "":
+	case loc.Value.GetChangedFiles() == 0:
 	default:
 		return true
 	}
@@ -108,6 +109,7 @@ func (loc Locator) toV4(ctx context.Context, client *githubv4.Client) (*v4PullRe
 	v4.BaseRefName = loc.Value.GetBase().GetRef()
 	v4.BaseRepository.DatabaseID = loc.Value.GetBase().GetRepo().GetID()
 	v4.IsDraft = loc.Value.GetDraft()
+	v4.ChangedFiles = loc.Value.GetChangedFiles()
 	return &v4, nil
 }
 
@@ -207,6 +209,7 @@ type v4PullRequestWithEditedAt struct {
 	CreatedAt    time.Time
 	LastEditedAt time.Time
 	Body         string
+	ChangedFiles int
 }
 
 func (ghc *GitHubContext) Body() (*Body, error) {
@@ -230,6 +233,7 @@ func (ghc *GitHubContext) Body() (*Body, error) {
 		CreatedAt:    graphqlResponse.CreatedAt,
 		Author:       graphqlResponse.Author.GetV3Login(),
 		LastEditedAt: graphqlResponse.LastEditedAt,
+		ChangedFiles: graphqlResponse.ChangedFiles,
 	}, nil
 }
 
@@ -270,14 +274,9 @@ func (ghc *GitHubContext) Branches() (base string, head string) {
 }
 
 func (ghc *GitHubContext) ChangedFiles() ([]*File, error) {
-
-	// check if changed files count exceeds the limit
-	count, err := ghc.ChangedFilesCount()
-	if err != nil {
-		return nil, err
-	}
-	if count > MaxPullRequestFiles {
-		return nil, errors.Errorf("number of changed files (%d) exceeds limit (%d)", count, MaxPullRequestFiles)
+	// Check if changed files exceeds the limit
+	if ghc.pr.ChangedFiles > MaxPullRequestFiles {
+		return nil, errors.Errorf("number of changed files (%d) exceeds limit (%d)", ghc.pr.ChangedFiles, MaxPullRequestFiles)
 	}
 
 	if ghc.files == nil {
@@ -330,19 +329,6 @@ func (ghc *GitHubContext) ChangedFiles() ([]*File, error) {
 	}
 
 	return ghc.files, nil
-}
-
-func (ghc *GitHubContext) ChangedFilesCount() (int, error) {
-	pullRequest, _, err := ghc.client.PullRequests.Get(ghc.ctx, ghc.owner, ghc.repo, ghc.number)
-	if err != nil {
-		return 0, err
-	}
-
-	if pullRequest.ChangedFiles != nil {
-		return *pullRequest.ChangedFiles, nil
-	}
-
-	return 0, errors.New("changed files count not available")
 }
 
 func (ghc *GitHubContext) Commits() ([]*Commit, error) {
@@ -1130,6 +1116,8 @@ type v4PullRequest struct {
 	BaseRepository struct {
 		DatabaseID int64
 	}
+
+	ChangedFiles int
 }
 
 type v4PageInfo struct {

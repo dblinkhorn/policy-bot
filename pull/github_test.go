@@ -31,10 +31,6 @@ import (
 
 func TestChangedFiles(t *testing.T) {
 	rp := &ResponsePlayer{}
-	rp.AddRule(
-		ExactPathMatcher("/repos/testorg/testrepo/pulls/123"),
-		"testdata/responses/pull_changed_files_count_within_limit.yml",
-	)
 	filesRule := rp.AddRule(
 		ExactPathMatcher("/repos/testorg/testrepo/pulls/123/files"),
 		"testdata/responses/pull_files.yml",
@@ -78,39 +74,26 @@ func TestChangedFiles(t *testing.T) {
 func TestChangedFilesExceedsLimit(t *testing.T) {
 	rp := &ResponsePlayer{}
 	rp.AddRule(
-		ExactPathMatcher("/repos/testorg/testrepo/pulls/123"),
-		"testdata/responses/pull_changed_files_count_exceeds_limit.yml",
+		ExactPathMatcher("/repos/testorg/testrepo/pulls/123/files"),
+		"testdata/responses/pull_files.yml",
 	)
-
-	ctx := makeContext(t, rp, nil, nil)
-
-	files, err := ctx.ChangedFiles()
-	require.Error(t, err, "expected error due to exceeding changed files limit")
-	assert.Contains(t, err.Error(), "number of changed files", "error message does not contain expected text")
-	assert.Nil(t, files, "expect files to be nil when error occurs")
-}
-
-func TestChangedFilesCount(t *testing.T) {
-	rp := &ResponsePlayer{}
 	rp.AddRule(
-		ExactPathMatcher("/repos/testorg/testrepo/pulls/123"),
-		"testdata/responses/pull_changed_files_count_within_limit.yml",
+		GraphQLNodePrefixMatcher("repository.pullRequest.changedFiles"),
+		"testdata/responses/pull_changed_files_exceeds_limit.yml",
 	)
 
-	ctx := makeContext(t, rp, nil, nil)
+	pr := defaultTestPR()
+	*pr.ChangedFiles = 3001
 
-	changedFilesCount, err := ctx.ChangedFilesCount()
-	require.NoError(t, err, "ChangedFilesCount() returned an error")
+	ctx := makeContext(t, rp, pr, nil)
 
-	assert.Equal(t, 5, changedFilesCount, "incorrect changed files count")
+	_, err := ctx.ChangedFiles()
+	assert.Equal(t, 3001, *pr.ChangedFiles)
+	assert.Contains(t, err.Error(), "number of changed files (3001) exceeds limit (3000)")
 }
 
 func TestChangedFilesNoFiles(t *testing.T) {
 	rp := &ResponsePlayer{}
-	rp.AddRule(
-		ExactPathMatcher("/repos/testorg/testrepo/pulls/123"),
-		"testdata/responses/pull_changed_files_count_within_limit.yml",
-	)
 	filesRule := rp.AddRule(
 		ExactPathMatcher("/repos/testorg/testrepo/pulls/123/files"),
 		"testdata/responses/pull_no_files.yml",
@@ -761,6 +744,7 @@ func defaultTestPR() *github.PullRequest {
 				Name: github.String("testrepo"),
 			},
 		},
+		ChangedFiles: github.Int(1),
 	}
 }
 

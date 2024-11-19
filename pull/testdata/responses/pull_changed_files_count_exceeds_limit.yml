@@ -1,5 +1,0 @@
-- status: 200
-  body: |
-    {
-      "changed_files": 3001
-    }
